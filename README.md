@@ -68,10 +68,14 @@ NVhHMCyXNHYRYg5mXw2nSnkLBh
 
 
 
- # generator 
+ # base58 header-only 
   
- linux:  
- ```
-c++ generator.cpp base58_c.cpp keccak.cpp -o c -lcrypto
-./c
- ```
+```
+base58.hpp
+```
+
+b58encode(std::string bytes)  
+input : raw bytes  
+output : `std::pair` with error code in `.first` and `std::string` with encoded stuff in `.second`  
+
+
