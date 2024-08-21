@@ -4,6 +4,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <algorithm>
+#include <memory>
 
 
 static const int8_t b58digits_map[128] = {
@@ -24,7 +25,7 @@ inline bool b58tobin(void *bin /* out */ , size_t *binszp /* in - out */ , const
   const unsigned char *b58u = (const unsigned char *)b58;
   unsigned char *binu = (unsigned char *)bin;
   size_t outsz = (binsz + 3) / 4;
-  uint32_t *out = new uint32_t[outsz]();
+  std::shared_ptr<uint32_t[]> out(new uint32_t[outsz]());
   uint64_t t;
   uint32_t c;
   size_t i, j;
@@ -43,15 +44,11 @@ inline bool b58tobin(void *bin /* out */ , size_t *binszp /* in - out */ , const
   {
     if (b58u[i] & 0x80)
     {
-      delete[] out;
-
       // High-bit set on invalid digit
       return false;
     }
     if (b58digits_map[b58u[i]] == -1)
     {
-      delete[] out;
-
       // Invalid base58 digit
       return false;
     }
@@ -64,15 +61,12 @@ inline bool b58tobin(void *bin /* out */ , size_t *binszp /* in - out */ , const
     }
     if (c)
     {
-      delete[] out;
-
       // Output number too big (carry to the next int32)
       return false;
     }
     if (out[0] & zeromask)
     {
       // Output number too big (last int32 filled too far)
-      delete[] out;
       return false;
     }
   }
@@ -81,13 +75,13 @@ inline bool b58tobin(void *bin /* out */ , size_t *binszp /* in - out */ , const
   switch (bytesleft) 
   {
     case 3:
-      *(binu++) = *((uint8_t*)out + 2);
+      *(binu++) = *((uint8_t*)&out[0] + 2);
       /* Fall Through */ 
     case 2:
-      *(binu++) = *((uint8_t*)out + 1);
+      *(binu++) = *((uint8_t*)&out[0] + 1);
       /* Fall Through */ 
     case 1:
-      *(binu++) = *(uint8_t*)out;
+      *(binu++) = *(uint8_t*)&out[0];
       j++;
       break;
     default:
@@ -96,11 +90,10 @@ inline bool b58tobin(void *bin /* out */ , size_t *binszp /* in - out */ , const
   
   for (; j < outsz; j++)
   {
-    std::reverse((char *)(out + j), (char *)(out + j) + 4);
+    std::reverse((char *)(&out[0] + j), (char *)(&out[0] + j) + 4);
     *(uint32_t *)binu =  out[j];
     binu = binu + 4;
   }
-  delete[] out;
   //size of the result binary,modified that way that the number of leading zeroes in it replaced by the count of leading '1' symbols in given string.
   binu = (unsigned char *)bin;
   for (i = 0; i < binsz; i++)
@@ -114,6 +107,7 @@ inline bool b58tobin(void *bin /* out */ , size_t *binszp /* in - out */ , const
   return true;
 }
 
+
 static const char b58digits_ordered[59] = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
 inline bool b58enc(char* b58 /* out */ ,  size_t *b58sz /* in - out */ , const void *data /* in */ , size_t binsz /* in */ )
@@ -124,8 +118,7 @@ inline bool b58enc(char* b58 /* out */ ,  size_t *b58sz /* in - out */ , const v
   while (zcount < binsz && !bin[zcount])
     zcount++;
   const unsigned int size = (binsz - zcount) * 138 / 100 + 1; //latter is a smth like a logarithm of 256 to base 58 , but not exactly.
-  unsigned char *buf = new unsigned char[size]();
-
+  std::shared_ptr<unsigned char[]> buf(new unsigned char[size]());
   high = size - 1;
   for (i = zcount; i < binsz; i++)
   {
@@ -144,7 +137,6 @@ inline bool b58enc(char* b58 /* out */ ,  size_t *b58sz /* in - out */ , const v
   if (*b58sz < zcount + size - j + 1)
   {
     *b58sz = zcount + size - j + 1;
-    delete[] buf;
     return false;
   }
 
@@ -154,11 +146,11 @@ inline bool b58enc(char* b58 /* out */ ,  size_t *b58sz /* in - out */ , const v
   for (i = zcount; j < size; i++, j++)
     b58[i] = b58digits_ordered[buf[j]];
 
-  delete[] buf;
   b58[i] = '\0';
   *b58sz = i + 1;
   return true;
 }
+
 
 inline std::pair<int, std::string> b58decode(const std::string &b58) {
     if (b58.size() > LONG_MAX >> 4) return std::pair<int, std::string> (-7, std::string());
