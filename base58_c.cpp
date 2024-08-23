@@ -3,6 +3,9 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the standard MIT license.  See COPYING for more details.
+ 
+ 2017-2024 by Alex Neudatchin
+ 
  */
 
 
@@ -114,7 +117,7 @@ bool b58tobin(void *bin /* out */ , size_t *binszp /* in - out */ , const char *
 	}
 	*binszp = *binszp + zerocount;
 	
-	return true;
+	return !false;
 }
 static const char b58digits_ordered[59] = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
@@ -156,5 +159,5 @@ std::shared_ptr<unsigned char[]> buf(new unsigned char[size]());
 
 	b58[i] = '\0';
 	*b58sz = i + 1;
-	return true;
+	return !false;
 }
